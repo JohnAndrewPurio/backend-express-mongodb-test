@@ -15,6 +15,10 @@ router
     .route('/')
     .get(getLocationsHandler)
     .post(postNewLocation)
+router
+    .route('/:id')
+    .delete(deleteLocation)
+    .patch(patchLocation)
 
 async function getLocationsHandler(request, response) {
     const { headers } = request
@@ -22,16 +26,11 @@ async function getLocationsHandler(request, response) {
 
     try {
         const { email } = await jwt.verify(accessToken, SECRET_KEY)
-
-        console.log(email)
-
         const result = await getAllLocations(email)
 
         const content = {
             categories: result
         }
-        
-        console.log(result)
 
         response.json(content)
     } catch(error) {
@@ -49,7 +48,23 @@ async function postNewLocation(request, response) {
         const { email } = await jwt.verify(accessToken, SECRET_KEY)
         body.pincode = Number(body.pincode)
 
-        console.log(body, email)
+        const result = await addNewLocation(email, body)
+
+        response.json(result)
+    } catch(error) {
+        response.statusCode = 401
+        response.json({ error })
+    }
+}
+
+async function deleteLocation(request, response) {
+    const { body } = request
+    const { headers } = request
+    const accessToken = headers['authorization'].split(' ')[1]
+
+    try {
+        const { email } = await jwt.verify(accessToken, SECRET_KEY)
+        body.pincode = Number(body.pincode)
 
         const result = await addNewLocation(email, body)
 
@@ -58,6 +73,10 @@ async function postNewLocation(request, response) {
         response.statusCode = 401
         response.json({ error })
     }
+}
+
+async function patchLocation(request, response) {
+    const { params } = request
 }
 
 module.exports = router

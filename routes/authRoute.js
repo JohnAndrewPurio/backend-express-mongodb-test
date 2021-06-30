@@ -6,32 +6,59 @@ const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
 const { addNewUser, loginUser } = require('../controllers/userController')
-const { storeRefreshToken } = require('../controllers/tokenController')
+const { checkIfTokenExists, storeRefreshToken } = require('../controllers/tokenController')
+const { verifyRefreshToken } = require('../helperFunctions/verifyTokens')
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET
 const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY
 
-const refreshTokens = []
-
 router.post('/signup', signUpPostHandler)
-
 router.post('/login', logInPostHandler)
+router.get('/token', verifyRefreshToken, tokenGetHandler)
+
+async function tokenGetHandler(request, response) {
+    try {
+        const { headers } = request
+        const refreshToken = headers['authorization'].split(' ')[1]
+    
+        const result = await checkIfTokenExists(refreshToken, REFRESH_TOKEN_SECRET)
+    
+        if (result.error) {
+            response.statusCode = 403
+            response.json(result)
+    
+            return
+        }
+        
+        const rawData = {
+            email: result.email,
+            timestamp: Date.now()
+        }
+
+        const accessToken = jwt.sign(rawData, ACCESS_TOKEN_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY })
+        const tokenData = {
+            access_token: accessToken,
+            access_token_expiry: ACCESS_TOKEN_EXPIRY
+        }
+
+        response.json(tokenData)
+    } catch(error) {
+        // console.log(error)
+        response.statusCode = 400
+        response.json(error)
+    }
+}
 
 async function signUpPostHandler(request, response) {
     const { body } = request
 
     const result = await addNewUser(body)
 
-    console.log(result, body)
-
-    if (result.error) {
+    if (result.error)
         response.statusCode = 400
-        response.send(result.error)
 
-        return
-    }
 
     response.json(result)
 }
@@ -45,7 +72,7 @@ async function logInPostHandler(request, response) {
         timestamp: Date.now()
     }
 
-    if(result.error) {
+    if (result.error) {
         response.statusCode = 400
         response.send(result)
 
@@ -60,13 +87,13 @@ async function logInPostHandler(request, response) {
 
     const tokenStored = await storeRefreshToken(refreshToken, jwt, REFRESH_TOKEN_SECRET)
 
-    if(tokenStored.error) {
+    if (tokenStored.error) {
         response.statusCode = 401
         response.send(tokenStored.error)
 
         return
     }
-    
+
     const tokenData = {
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -74,7 +101,7 @@ async function logInPostHandler(request, response) {
         refresh_token_expiry: REFRESH_TOKEN_EXPIRY
     }
 
-    response.json( tokenData )
+    response.json(tokenData)
 }
 
 module.exports = router

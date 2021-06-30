@@ -11,17 +11,27 @@ async function storeRefreshToken(refreshToken, jwt, secret) {
             token: refreshToken,
             email: email 
         }
+
         const token = new TokenModel(schema)
         const savedToken = await token.save()
 
         return savedToken
     } catch(error) {
-        console.log(error)
+        return { error }
+    }
+}
 
+async function checkIfTokenExists(refreshToken, secret) {
+    try {
+        const { email } = await jwt.verify(refreshToken, secret)
+        const token = await connection.collection('tokens').findOne({email: email})
+
+        return token
+    } catch(error) {
         return { error }
     }
 }
 
 module.exports = {
-    storeRefreshToken
+    storeRefreshToken, checkIfTokenExists
 }

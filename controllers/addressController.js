@@ -52,19 +52,25 @@ async function getAllLocations( email ) {
         const userFound = await connection.collection('users').findOne({ email: email })
         const userId = mongo.ObjectId(userFound._id)
 
-        const result = await connection.collection('locations').findOne({ user: userId })
+        const { location } = await connection.collection('locations').findOne({ user: userId })
 
-        const resultArr = result.location.map( async (address) => {
-            const data = await connection.collection('addresses').findOne( { _id: mongo.ObjectId(address) } ) 
-            const addressEle = await data
-            // console.log(data)
+        // const resultArr = result.location.map( async (address) => {
+        //     const data = await connection.collection('addresses').findOne( { _id: mongo.ObjectId(address) } ) 
+        //     const addressEle = await data
+        //     console.log(data, addressEle)
 
-            return addressEle
-        }) 
-        
-        console.log(resultArr)
+        //     return addressEle
+        // }) 
 
-        // return result
+        const resultArr = []
+
+        for( let index = 0; index < location.length; index++ ) {
+            const address = location[index]
+            const data = await connection.collection('addresses').findOne( { _id: mongo.ObjectId(address) } )
+
+            resultArr.push( data )
+        }
+
         return resultArr
     } catch(error) {
         console.log(error)
