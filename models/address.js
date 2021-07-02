@@ -33,7 +33,8 @@ const AddressSchema = new Schema({
 
     label: {
         type: String,
-        required: true    
+        required: true,
+        unique: true 
     }
 }, { timestamps: true })
 

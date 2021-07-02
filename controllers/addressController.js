@@ -9,13 +9,16 @@ async function addNewAddress(schema) {
 
         return savedAddress
     } catch(error) {
+        console.log(error)
+
         return { error }
     }
 }
 
 async function addNewLocation(email, address) {
     try {
-        const userFound = connection.collection('location').findOne({ email: email })
+        const userFound = await connection.collection('users').findOne({ email: email })
+
 
         if(!userFound) {
             return {
@@ -24,21 +27,27 @@ async function addNewLocation(email, address) {
         }
 
         const addressObject = await addNewAddress(address)
-        const userId = mongo.ObjectId(userFound._id) 
-
-        // const foundLocation = connection.collection('location').findOne({ _id: userId })
 
         const schema = {
-            user: await connection.collection('users').findOne({ email: email }),
-            location: addressObject
+            user: userFound,
+            address: [addressObject]
         }
 
-        console.log(schema)
+        let locationCollection = await connection.collection('locations').findOne({ user: userFound })
 
-        const location = new LocationModel(schema)
-        const savedLocation = await location.save()
+        console.log(locationCollection)
+        if(!locationCollection) {
+            const newLocation = new LocationModel(schema)
+            await newLocation.save()
 
-        return savedLocation
+            locationCollection = await connection.collection('locations').findOne({ user: userFound })
+        }
+        
+        const update = await locationCollection.update({ user: userFound }, { $push: addressObject }, { new: true })
+
+        console.log('Update:', update, addressObject)
+
+        return 'Location added'
     } catch(error) {
         console.log(error)
 
@@ -52,15 +61,10 @@ async function getAllLocations( email ) {
         const userFound = await connection.collection('users').findOne({ email: email })
         const userId = mongo.ObjectId(userFound._id)
 
-        const { location } = await connection.collection('locations').findOne({ user: userId })
-
-        // const resultArr = result.location.map( async (address) => {
-        //     const data = await connection.collection('addresses').findOne( { _id: mongo.ObjectId(address) } ) 
-        //     const addressEle = await data
-        //     console.log(data, addressEle)
-
-        //     return addressEle
-        // }) 
+        const locationData = await connection.collection('locations').findOne({ user: userId })
+        const location = locationData.location
+        
+        console.log(locationData)
 
         const resultArr = []
 

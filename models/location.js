@@ -10,12 +10,8 @@ const LocationSchema = new Schema({
     location: {
         type: [SchemaTypes.ObjectId],
         ref: 'Address'
-    },
-
-    // location: {
-    //     type: String,
-    //     required: true
-    // }
+    }
+    
 }, { timestamps: true })
 
 const LocationModel = new model("Location", LocationSchema)

@@ -1,5 +1,4 @@
 const { config } = require('dotenv')
-
 config()
 
 const express = require('express')
@@ -28,11 +27,7 @@ async function getLocationsHandler(request, response) {
         const { email } = await jwt.verify(accessToken, SECRET_KEY)
         const result = await getAllLocations(email)
 
-        const content = {
-            categories: result
-        }
-
-        response.json(content)
+        response.json(result)
     } catch(error) {
         response.statusCode = 403
         response.json({ error })
@@ -49,6 +44,10 @@ async function postNewLocation(request, response) {
         body.pincode = Number(body.pincode)
 
         const result = await addNewLocation(email, body)
+
+        if(result.error) {
+            response.statusCode = 400
+        }
 
         response.json(result)
     } catch(error) {
