@@ -67,16 +67,17 @@ async function logInPostHandler(request, response) {
     const { body } = request
 
     const result = await loginUser(body)
-    const rawData = {
-        email: result.user.email,
-        timestamp: Date.now()
-    }
 
     if (result.error) {
         response.statusCode = 400
         response.send(result)
 
         return
+    }
+
+    const rawData = {
+        email: result.user.email,
+        timestamp: Date.now()
     }
 
     const accessToken = jwt.sign(rawData, ACCESS_TOKEN_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY })

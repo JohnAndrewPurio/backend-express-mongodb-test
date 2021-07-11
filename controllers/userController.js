@@ -40,7 +40,7 @@ async function loginUser({email, password}) {
 
         return {user, passwordHash}
     } catch(error) {
-        return {error}
+        return { error: error }
     }
 }
 

@@ -1,88 +1,68 @@
 const { connection, mongo } = require('mongoose')
 const AddressModel = require('../models/address')
-const LocationModel = require('../models/location')
+const UserModel = require('../models/user')
 
-async function addNewAddress(schema) {
+async function addNewLocation(email, location) {
     try {
-        const address = new AddressModel(schema)
-        const savedAddress = await address.save()
+        const userFound = await UserModel.findOne({ email })
+        location.user = userFound
+        const address =  new AddressModel(location)
+        await address.save()
 
-        return savedAddress
-    } catch(error) {
-        console.log(error)
-
-        return { error }
+        await UserModel.updateOne({ email }, { $push: { locations: address } })
+        
+        return address
+    } catch (error) {
+        return { error: error }
     }
 }
 
-async function addNewLocation(email, address) {
+async function getAllLocations(email) {
     try {
-        const userFound = await connection.collection('users').findOne({ email: email })
+        const { locations } = await UserModel.findOne({ email })
 
+        const result = []
 
-        if(!userFound) {
-            return {
-                error: 'Invalid email'
-            }
+        for(let index = 0; index < locations.length; index++) {
+            const address = mongo.ObjectId(locations[index])
+
+            result.push( await AddressModel.findOne( { _id: address } ) )
         }
 
-        const addressObject = await addNewAddress(address)
-
-        const schema = {
-            user: userFound,
-            address: [addressObject]
-        }
-
-        let locationCollection = await connection.collection('locations').findOne({ user: userFound })
-
-        console.log(locationCollection)
-        if(!locationCollection) {
-            const newLocation = new LocationModel(schema)
-            await newLocation.save()
-
-            locationCollection = await connection.collection('locations').findOne({ user: userFound })
-        }
-        
-        const update = await locationCollection.update({ user: userFound }, { $push: addressObject }, { new: true })
-
-        console.log('Update:', update, addressObject)
-
-        return 'Location added'
-    } catch(error) {
-        console.log(error)
-
-        return { error }
+        return result
+    } catch (error) {
+        return { error: error }
     }
 }
 
-
-async function getAllLocations( email ) {
+async function deleteLocation(email, location) {
     try {
-        const userFound = await connection.collection('users').findOne({ email: email })
-        const userId = mongo.ObjectId(userFound._id)
+        const locationId = mongo.ObjectId(location)
+        const userFound = await UserModel.updateOne({ email }, { $pull: { locations: locationId } })
+        await AddressModel.deleteOne( { _id: locationId } )
 
-        const locationData = await connection.collection('locations').findOne({ user: userId })
-        const location = locationData.location
-        
-        console.log(locationData)
-
-        const resultArr = []
-
-        for( let index = 0; index < location.length; index++ ) {
-            const address = location[index]
-            const data = await connection.collection('addresses').findOne( { _id: mongo.ObjectId(address) } )
-
-            resultArr.push( data )
+        return {
+            message: 'Address Deleted'
         }
+    } catch (error) {
+        return { error: error }
+    }
+}
 
-        return resultArr
-    } catch(error) {
-        console.log(error)
+async function patchLocation(email, location, patch) {
+    try {
+        const locationId = mongo.ObjectId(location)
+        const userFound = await UserModel.findOne( { email } )
+        await AddressModel.updateOne({ _id: locationId }, patch)
 
-        return { error }
+        return {
+            message: 'Address Updated'
+        }
+    } catch (error) {
+        return { error: error }
     }
 }
 
 module.exports = {
-    addNewLocation, getAllLocations
+    addNewLocation, getAllLocations, deleteLocation, patchLocation
 }

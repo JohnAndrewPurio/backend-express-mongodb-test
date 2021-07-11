@@ -1,4 +1,4 @@
-const {Schema, model} = require('mongoose')
+const {Schema, model, SchemaTypes} = require('mongoose')
 
 const AddressSchema = new Schema({
     city: {
@@ -35,6 +35,11 @@ const AddressSchema = new Schema({
         type: String,
         required: true,
         unique: true 
+    },
+
+    user: {
+        type: SchemaTypes.ObjectId,
+        ref: 'User'
     }
 }, { timestamps: true })
 
